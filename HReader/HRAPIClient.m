@@ -233,19 +233,17 @@ static NSMutableDictionary *allClients = nil;
 
 #pragma mark - build requests
 
-- (NSMutableURLRequest *)GETRequestWithPath:(NSString *)path {
-    
-    // log initial statement
+- (void)refreshAccessToken {
     HRDebugLog(@"Building request");
     
-    // make sure we have a refresh token
+    // Make sure we have a refresh token
     NSString *refresh = HRCryptoManagerKeychainItemString(HROAuthKeychainService, _host);
     if (refresh == nil) {
         HRDebugLog(@"No refresh token is present");
-        return nil;
+        return;
     }
     
-    // used to refresh the access token
+    // Used to refresh the access token
     NSTimeInterval interval = [_accessTokenExpirationDate timeIntervalSinceNow];
     if (_accessTokenExpirationDate) { HRDebugLog(@"Access token expires in %f minutes", interval / 60.0); }
     NSDictionary *refreshParameters = @{
@@ -253,125 +251,17 @@ static NSMutableDictionary *allClients = nil;
         @"grant_type" : @"refresh_token"
     };
     
-    // make sure we have both required elements
+    // Make sure we have both required elements
     if (_accessToken == nil || _accessTokenExpirationDate == nil || interval < 60.0) {
         HRDebugLog(@"Access token is invalid -- refreshing...");
-        if (![self refreshAccessTokenWithParameters:refreshParameters]) {
-            return nil;
-        }
-    }
-    
-    // check if our access token will expire soon
-    else if (interval < 60.0 * 3.0) {
+        if (![self refreshAccessTokenWithParameters:refreshParameters]) { return; }
+    } else if (interval < 60.0 * 3.0) {
+        // Check if our access token will expire soon
         HRDebugLog(@"Access token will expire soon -- refreshing later");
         dispatch_async(_requestQueue, ^{
             [self refreshAccessTokenWithParameters:refreshParameters];
         });
     }
-    
-    // build request parameters
-    NSDictionary *parameters = [NSDictionary dictionaryWithObject:_accessToken forKey:@"access_token"];
-    NSString *query = [HRAPIClient queryStringWithParameters:parameters];
-    NSString *URLString = [NSString stringWithFormat:@"https://%@%@?%@", _host, path, query];
-    NSURL *URL = [NSURL URLWithString:URLString];
-    
-    // build request
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:URL];
-    [request setHTTPShouldHandleCookies:NO];
-    [request setHTTPMethod:@"GET"];
-    
-    // return
-    return request;
-    
-}
-
-- (NSMutableURLRequest *)POSTRequestWithPath:(NSString *)path andParameters:(NSDictionary *)params {
-    
-    // log initial statement
-    HRDebugLog(@"Building request");
-    
-    // make sure we have a refresh token
-    NSString *refresh = HRCryptoManagerKeychainItemString(HROAuthKeychainService, _host);
-    if (refresh == nil) {
-        HRDebugLog(@"No refresh token is present");
-        return nil;
-    }
-    
-    // used to refresh the access token
-    NSTimeInterval interval = [_accessTokenExpirationDate timeIntervalSinceNow];
-    if (_accessTokenExpirationDate) { HRDebugLog(@"Access token expires in %f minutes", interval / 60.0); }
-    NSDictionary *refreshParameters = @{
-    @"refresh_token" : refresh,
-    @"grant_type" : @"refresh_token"
-    };
-    
-    // make sure we have both required elements
-    if (_accessToken == nil || _accessTokenExpirationDate == nil || interval < 60.0) {
-        HRDebugLog(@"Access token is invalid -- refreshing...");
-        if (![self refreshAccessTokenWithParameters:refreshParameters]) {
-            return nil;
-        }
-    }
-    
-    // check if our access token will expire soon
-    else if (interval < 60.0 * 3.0) {
-        HRDebugLog(@"Access token will expire soon -- refreshing later");
-        dispatch_async(_requestQueue, ^{
-            [self refreshAccessTokenWithParameters:refreshParameters];
-        });
-    }
-    
-    // build request parameters
-    NSMutableDictionary *parameters = [NSMutableDictionary dictionaryWithDictionary:params];
-    [parameters setObject:_accessToken forKey:@"access_token"];
-    
-    NSString *query = [HRAPIClient queryStringWithParameters:parameters];
-    NSData *post = [query dataUsingEncoding:NSUnicodeStringEncoding allowLossyConversion:YES];//LMD TODO: Change to ascii?
-    NSString *URLString = [NSString stringWithFormat:@"https://%@%@", _host, path];//TODO: LMD other post URL changes?
-    NSURL *URL = [NSURL URLWithString:URLString];
-    
-    // build request
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:URL];
-    [request setHTTPShouldHandleCookies:NO];
-    [request setHTTPMethod:@"POST"];
-    [request setValue:[NSString stringWithFormat:@"%d", [post length]] forHTTPHeaderField:@"Content-Length"];
-    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
-    [request setHTTPBody:post];
-    
-    
-    
-    
-    // return
-    return request;
-    
-}
-
-- (NSURLRequest *)authorizationRequest {
-    NSDictionary *parameters = @{
-        @"client_id" : HROAuthClientIdentifier,
-        @"response_type" : @"code"
-    };
-    NSString *query = [HRAPIClient queryStringWithParameters:parameters];
-    NSString *URLString = [NSString stringWithFormat:@"https://%@/oauth2/authorize?%@", _host, query];
-    NSURL *URL = [NSURL URLWithString:URLString];
-    return [[NSURLRequest alloc] initWithURL:URL];
-}
-
-#pragma mark - object methods
-
-- (id)initWithHost:(NSString *)host {
-    self = [super init];
-    if (self) {
-        _host = [host copy];
-        NSString *name = [NSString stringWithFormat:@"org.mitre.hreader.rhex-queue.%@", _host];
-        _requestQueue = dispatch_queue_create([name UTF8String], DISPATCH_QUEUE_SERIAL);
-    }
-    return self;
-}
-
-- (void)destroy {
-    [IMSKeychain deletePasswordForService:HROAuthKeychainService account:_host];
-    [allClients removeObjectForKey:_host];
 }
 
 - (BOOL)refreshAccessTokenWithParameters:(NSDictionary *)parameters {
@@ -446,6 +336,74 @@ static NSMutableDictionary *allClients = nil;
     // last ditch return
     return NO;
     
+}
+
+- (NSMutableURLRequest *)GETRequestWithPath:(NSString *)path {
+    [self refreshAccessToken];
+    
+    // Build request parameters
+    NSDictionary *parameters = [NSDictionary dictionaryWithObject:_accessToken forKey:@"access_token"];
+    NSString *query = [HRAPIClient queryStringWithParameters:parameters];
+    NSString *URLString = [NSString stringWithFormat:@"https://%@%@?%@", _host, path, query];
+    NSURL *URL = [NSURL URLWithString:URLString];
+    
+    // Build request
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:URL];
+    [request setHTTPShouldHandleCookies:NO];
+    [request setHTTPMethod:@"GET"];
+    
+    return request;
+}
+
+- (NSMutableURLRequest *)POSTRequestWithPath:(NSString *)path andParameters:(NSDictionary *)params {
+    [self refreshAccessToken];
+    
+    // Build request parameters
+    NSMutableDictionary *parameters = [NSMutableDictionary dictionaryWithDictionary:params];
+    [parameters setObject:_accessToken forKey:@"access_token"];
+    
+    NSString *query = [HRAPIClient queryStringWithParameters:parameters];
+    NSData *post = [query dataUsingEncoding:NSUnicodeStringEncoding allowLossyConversion:YES];//LMD TODO: Change to ascii?
+    NSString *URLString = [NSString stringWithFormat:@"https://%@%@", _host, path];//TODO: LMD other post URL changes?
+    NSURL *URL = [NSURL URLWithString:URLString];
+    
+    // Build request
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:URL];
+    [request setHTTPShouldHandleCookies:NO];
+    [request setHTTPMethod:@"POST"];
+    [request setValue:[NSString stringWithFormat:@"%d", [post length]] forHTTPHeaderField:@"Content-Length"];
+    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+    [request setHTTPBody:post];
+    
+    return request;
+}
+
+- (NSURLRequest *)authorizationRequest {
+    NSDictionary *parameters = @{
+        @"client_id" : HROAuthClientIdentifier,
+        @"response_type" : @"code"
+    };
+    NSString *query = [HRAPIClient queryStringWithParameters:parameters];
+    NSString *URLString = [NSString stringWithFormat:@"https://%@/oauth2/authorize?%@", _host, query];
+    NSURL *URL = [NSURL URLWithString:URLString];
+    return [[NSURLRequest alloc] initWithURL:URL];
+}
+
+#pragma mark - object methods
+
+- (id)initWithHost:(NSString *)host {
+    self = [super init];
+    if (self) {
+        _host = [host copy];
+        NSString *name = [NSString stringWithFormat:@"org.mitre.hreader.rhex-queue.%@", _host];
+        _requestQueue = dispatch_queue_create([name UTF8String], DISPATCH_QUEUE_SERIAL);
+    }
+    return self;
+}
+
+- (void)destroy {
+    [IMSKeychain deletePasswordForService:HROAuthKeychainService account:_host];
+    [allClients removeObjectForKey:_host];
 }
 
 #pragma mark - login callback
