@@ -26,6 +26,9 @@
 #import "IMSPasswordViewController.h"
 #import <SecureFoundation/SecureFoundation.h>
 
+// OAuth client resources
+//static NSString * const HRAuthenticationServer = @"growing-spring-4857.herokuapp.com";
+static NSString * const HRAuthenticationServer = @"localhost:3000";
 
 @implementation HRAppDelegate {
     NSUInteger passcodeAttempts;
@@ -95,8 +98,7 @@
     }
 }
 
-- (void)performLaunchSteps {
-    
+- (void)abortIfCompromised {
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
 #define PEACE_OUT() raise(SIGKILL); abort(); exit(EXIT_FAILURE);
     
@@ -133,9 +135,14 @@
     };
     
 #endif
+}
+
+- (void)performLaunchSteps {
+    [self abortIfCompromised];
     
-    // check for hippa message
     if (![HRHIPPAMessageViewController hasAcceptedHIPPAMessage]) {
+        // If the user hasn't accepted the HIPPA message yet, present it to them
+        
         UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
         HRHIPPAMessageViewController *controller = [storyboard instantiateViewControllerWithIdentifier:@"HIPPAViewController"];
         controller.navigationItem.hidesBackButton = YES;
@@ -144,10 +151,9 @@
         UINavigationController *navigation = (id)self.window.rootViewController;
         [navigation popToRootViewControllerAnimated:NO];
         [navigation pushViewController:controller animated:YES];
-    }
-    
-    // check for passcode
-    else if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {
+    } else if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {
+        // If the user hasn't configured their passcode or security questions yet, prompt them to do so
+        
         UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
         IMSPasswordViewController *password = [storyboard instantiateViewControllerWithIdentifier:@"CreatePasscodeViewController"];
         password.title = @"Set Password";
@@ -162,34 +168,31 @@
           cancelButtonTitle:@"OK"
           otherButtonTitles:nil]
          show];
-    }
-    
-    // unlocked
-    else if (HRCryptoManagerIsUnlocked()) {
+    } else if (HRCryptoManagerIsUnlocked()) {
+        // Crypto has been configured, so try to log in
+        
         NSArray *hosts = [HRAPIClient hosts];
         UIViewController *controller = [(id)self.window.rootViewController topViewController];
         
-        // load persistent store
+        // Load our database if we haven't already
         [self addPersistentStoreIfNeeded];
         
-        // check for accounts
+        // Connect to our sources of data and sync
         if ([hosts count] == 0) {
-            HRAPIClient *client = [HRAPIClient clientWithHost:@"growing-spring-4857.herokuapp.com"];
+            // If we haven't authenticated with any servers, attempt to do so
+            HRAPIClient *client = [HRAPIClient clientWithHost:HRAuthenticationServer];
             HRRHExLoginViewController *controller = [HRRHExLoginViewController loginViewControllerForClient:client];
             controller.navigationItem.hidesBackButton = YES;
             controller.target = self;
             controller.action = @selector(initialLoginDidSucceed:);
             [(id)self.window.rootViewController pushViewController:controller animated:YES];
-        }
-        
-        // carry on
-        else {
-            
-            // update local data
+        } else {
+            // We've already authenticated, so just update local data from servers
             NSString *host = [hosts lastObject];
             [[HRAPIClient clientWithHost:host] patientFeed:nil];
             [HRMPatient performSync];
-            // push storyboard if we need to
+            
+            // Present the People Setup view if it's not already being shown
             if ([controller isKindOfClass:[HRSplashScreenViewController class]] ||
                 [controller isKindOfClass:[HRHIPPAMessageViewController class]]) {
                 UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
@@ -197,13 +200,9 @@
                 [[controller navigationItem] setHidesBackButton:YES];
                 [(id)self.window.rootViewController pushViewController:controller animated:YES];
             }
-            
         }
-        
-    }
-    
-    // locked
-    else {
+    } else {
+        // Otherwise, we have not successfully authenticated yet, so let the user login
         [self presentPasscodeVerificationController:YES];
     }
     
