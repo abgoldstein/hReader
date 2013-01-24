@@ -16,9 +16,12 @@
 
 #define hr_dispatch_main(block) dispatch_async(dispatch_get_main_queue(), block)
 
-// oauth client resources
-static NSString * const HROAuthClientIdentifier = @"c367aa7b8c87ce239981140511a7d158";
-static NSString * const HROAuthClientSecret = @"bc121c529fcd1689704a24460b91f98b";
+// OAuth client resources
+//static NSString * const HROAuthClientIdentifier = @"c367aa7b8c87ce239981140511a7d158";
+//static NSString * const HROAuthClientSecret = @"bc121c529fcd1689704a24460b91f98b";
+static NSString * const HROAuthClientIdentifier = @"hreader";
+static NSString * const HROAuthClientSecret = @"APNCa0VUQ-s-MccaBVosX_KwBRzkGT1Z9UXdroMwHhn1DPXZAemSytOQC1pfbOlQ8Dtdo6pmUSD5H2Z2kW03Xcw";
+static NSString * const HROAuthTokenPath = @"openid-connect-server/authorize";
 static NSString * const HROAuthKeychainService = @"org.hreader.oauth.2";
 static NSMutableDictionary *allClients = nil;
 
@@ -265,7 +268,6 @@ static NSMutableDictionary *allClients = nil;
 }
 
 - (BOOL)refreshAccessTokenWithParameters:(NSDictionary *)parameters {
-    
     // build request parameters
     NSMutableDictionary *requestParameters = [parameters mutableCopy];
     [requestParameters setObject:HROAuthClientIdentifier forKey:@"client_id"];
@@ -335,7 +337,6 @@ static NSMutableDictionary *allClients = nil;
     
     // last ditch return
     return NO;
-    
 }
 
 - (NSMutableURLRequest *)GETRequestWithPath:(NSString *)path {
@@ -381,11 +382,14 @@ static NSMutableDictionary *allClients = nil;
 - (NSURLRequest *)authorizationRequest {
     NSDictionary *parameters = @{
         @"client_id" : HROAuthClientIdentifier,
-        @"response_type" : @"code"
+        @"client_secret" : HROAuthClientSecret,
+        @"response_type" : @"code",
+        @"redirect_uri" : @"http://hreader.local/openid"
     };
     NSString *query = [HRAPIClient queryStringWithParameters:parameters];
-    NSString *URLString = [NSString stringWithFormat:@"https://%@/oauth2/authorize?%@", _host, query];
+    NSString *URLString = [NSString stringWithFormat:@"%@/%@?%@", _host, HROAuthTokenPath, query];
     NSURL *URL = [NSURL URLWithString:URLString];
+    
     return [[NSURLRequest alloc] initWithURL:URL];
 }
 

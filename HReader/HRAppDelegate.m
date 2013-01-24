@@ -28,7 +28,8 @@
 
 // OAuth client resources
 //static NSString * const HRAuthenticationServer = @"growing-spring-4857.herokuapp.com";
-static NSString * const HRAuthenticationServer = @"localhost:3000";
+
+static NSString * const HRAuthenticationServer = @"http://idsandbox.vislab.mitre.org";
 
 @implementation HRAppDelegate {
     NSUInteger passcodeAttempts;
