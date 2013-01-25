@@ -254,7 +254,15 @@ static NSString * const HRAuthenticationServer = @"http://idsandbox.vislab.mitre
     
     // return
     return YES;
+}
+
+- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url {
+    NSString *query = [url query];
+    if ([query rangeOfString:@"code"].location != NSNotFound) {
+        
+    }
     
+    return YES;
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {

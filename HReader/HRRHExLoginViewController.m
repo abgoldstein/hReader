@@ -56,9 +56,12 @@ static NSString *HROAuthURLHost = @"oauth";
     UIBarButtonItem *item = [[UIBarButtonItem alloc] initWithCustomView:self.navigationToolbar];
     self.navigationItem.leftBarButtonItem = item;
     
-    // other
     [CMDActivityHUD show];
-    [self.webView loadRequest:[self.client authorizationRequest]];
+    
+    // Form the HTTP request to get an OpenID code. This will be loaded via Safari so we can take advantage of cert handling there.
+    NSURLRequest *request = [self.client authorizationRequest];
+    NSURL *URL = [request URL];
+    [[UIApplication sharedApplication] openURL:URL];
 }
 
 #pragma mark - web view delegate
@@ -72,12 +75,7 @@ static NSString *HROAuthURLHost = @"oauth";
     NSURL *URL = [request URL];
     NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[URL query]];
     
-    NSError *connectionError = nil;
-    NSHTTPURLResponse *response = nil;
-    NSData *body = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&connectionError];
-
     // Show the HUD to block while we fetch our access tokens
-    [CMDActivityHUD show];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         if ([self.client refreshAccessTokenWithParameters:parameters]) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -137,14 +135,6 @@ static NSString *HROAuthURLHost = @"oauth";
     [(UIBarButtonItem *)buttons[0] setEnabled:[webView canGoBack]];
     [(UIBarButtonItem *)buttons[1] setEnabled:[webView canGoForward]];
     [(UIBarButtonItem *)buttons[2] setEnabled:YES];
-}
-
-- (void)webViewDidStartLoad:(UIWebView *)webView {
-    NSString *blah = @"Hi";
-}
-
-- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
-    NSString *blah = @"Hi";
 }
 
 @end

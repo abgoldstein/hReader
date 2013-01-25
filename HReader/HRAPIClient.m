@@ -384,7 +384,7 @@ static NSMutableDictionary *allClients = nil;
         @"client_id" : HROAuthClientIdentifier,
         @"client_secret" : HROAuthClientSecret,
         @"response_type" : @"code",
-        @"redirect_uri" : @"http://hreader.local/openid"
+        @"redirect_uri" : @"hreader://openid"
     };
     NSString *query = [HRAPIClient queryStringWithParameters:parameters];
     NSString *URLString = [NSString stringWithFormat:@"%@/%@?%@", _host, HROAuthTokenPath, query];
