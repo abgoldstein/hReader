@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>default</key>
+	<dict>
+		<key>name</key>
+		<string>hReader demo server</string>
+		<key>description</key>
+		<string>Synthetic patient data for demoing hReader</string>
+		<key>clientID</key>
+		<string>c367aa7b8c87ce239981140511a7d158</string>
+		<key>clientSecret</key>
+		<string>bc121c529fcd1689704a24460b91f98b</string>
+		<key>identityServer</key>
+		<string>http://growing-spring-4857.herokuapp.com/</string>
+		<key>identityPath</key>
+		<string>authorize</string>
+		<key>authenticationServer</key>
+		<string>http://growing-spring-4857.herokuapp.com/</string>
+		<key>authenticationPath</key>
+		<string>oauth2/token</string>
+		<key>dataServer</key>
+		<string>http://growing-spring-4857.herokuapp.com/</string>
+		<key>dataPath</key>
+		<string>records</string>
+		<key>dataFormat</key>
+		<string>c32</string>
+	</dict>
+	<key>ground</key>
+	<dict>
+		<key>name</key>
+		<string>HIMSS demo server</string>
+		<key>description</key>
+		<string>Synthetic patient data for demoing hReader at HIMSS</string>
+		<key>clientID</key>
+		<string>hreader</string>
+		<key>clientSecret</key>
+		<string>APNCa0VUQ-s-MccaBVosX_KwBRzkGT1Z9UXdroMwHhn1DPXZAemSytOQC1pfbOlQ8Dtdo6pmUSD5H2Z2kW03Xcw</string>
+		<key>identityServer</key>
+		<string>http://ground.mitre.org/</string>
+		<key>identityPath</key>
+		<string>authorize</string>
+		<key>authenticationServer</key>
+		<string>http://ground.mitre.org/</string>
+		<key>authenticationPath</key>
+		<string>token</string>
+		<key>dataServer</key>
+		<string>http://MM170163-PC.mitre.org:8080</string>
+		<key>dataPath</key>
+		<string>rhex-simple-endpoint/patients</string>
+		<key>dataFormat</key>
+		<string>json</string>
+	</dict>
+</dict>
+</plist>
