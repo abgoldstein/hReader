@@ -27,6 +27,6 @@
  Get a new login controller that is setup to talk to the given API client.
  
  */
-+ (HRRHExLoginViewController *)loginViewControllerForClient:(HRAPIClient *)client;
++ (HRRHExLoginViewController *)loginViewControllerForClient:(HRAPIClient *)client code:(NSString *)code;
 
 @end

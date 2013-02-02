@@ -20,16 +20,18 @@ static NSString *HROAuthURLHost = @"oauth";
 @property (nonatomic, strong) IBOutlet UIToolbar *navigationToolbar;
 @property (nonatomic, weak) IBOutlet UIWebView *webView;
 @property (nonatomic, strong) HRAPIClient *client;
+@property (nonatomic, weak) NSString *authenticationCode;
 @end
 
 @implementation HRRHExLoginViewController
 
 #pragma mark - class methods
 
-+ (HRRHExLoginViewController *)loginViewControllerForClient:(HRAPIClient *)client {
++ (HRRHExLoginViewController *)loginViewControllerForClient:(HRAPIClient *)client code:(NSString *)code {
     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
     HRRHExLoginViewController *controller = [storyboard instantiateViewControllerWithIdentifier:@"RHExLoginViewController"];
     controller.client = client;
+    controller.authenticationCode = code;
     return controller;
 }
 
@@ -57,11 +59,7 @@ static NSString *HROAuthURLHost = @"oauth";
     self.navigationItem.leftBarButtonItem = item;
     
     [CMDActivityHUD show];
-    
-    // Form the HTTP request to get an OpenID code. This will be loaded via Safari so we can take advantage of cert handling there.
-    NSURLRequest *request = [self.client authorizationRequest];
-    NSURL *URL = [request URL];
-    [[UIApplication sharedApplication] openURL:URL];
+    [self.webView loadRequest:[self.client authorizationRequest]];
 }
 
 #pragma mark - web view delegate

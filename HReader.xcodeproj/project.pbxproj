@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		24584D8C169F41C500F69B1A /* HRPopHealthAppletTile.m in Sources */ = {isa = PBXBuildFile; fileRef = 24584D8B169F41C500F69B1A /* HRPopHealthAppletTile.m */; };
+		24E6E22C16BDA83A008A7D97 /* known-hosts.plist in Resources */ = {isa = PBXBuildFile; fileRef = 24E6E22B16BDA83A008A7D97 /* known-hosts.plist */; };
 		3B001D3E157519DB00762FB0 /* InitialSetup_iPad.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B001D3D157519DB00762FB0 /* InitialSetup_iPad.storyboard */; };
 		3B001D4315751D0300762FB0 /* HRPeopleSetupViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B001D4215751D0300762FB0 /* HRPeopleSetupViewController.m */; };
 		3B001D46157522C300762FB0 /* HRPeopleSetupPlaceHolderView.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B001D45157522C300762FB0 /* HRPeopleSetupPlaceHolderView.m */; };
@@ -357,6 +358,7 @@
 /* Begin PBXFileReference section */
 		24584D8A169F41C500F69B1A /* HRPopHealthAppletTile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HRPopHealthAppletTile.h; sourceTree = "<group>"; };
 		24584D8B169F41C500F69B1A /* HRPopHealthAppletTile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HRPopHealthAppletTile.m; sourceTree = "<group>"; };
+		24E6E22B16BDA83A008A7D97 /* known-hosts.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "known-hosts.plist"; sourceTree = "<group>"; };
 		3B001D3D157519DB00762FB0 /* InitialSetup_iPad.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = InitialSetup_iPad.storyboard; sourceTree = "<group>"; };
 		3B001D4115751D0300762FB0 /* HRPeopleSetupViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HRPeopleSetupViewController.h; sourceTree = "<group>"; };
 		3B001D4215751D0300762FB0 /* HRPeopleSetupViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HRPeopleSetupViewController.m; sourceTree = "<group>"; };
@@ -1312,6 +1314,7 @@
 				3BFBEE1B1534BF32009EBA2D /* HReaderApplets.plist */,
 				3B001D3D157519DB00762FB0 /* InitialSetup_iPad.storyboard */,
 				3BC6A68B15A5D0DC00FA0C3A /* hippa.txt */,
+				24E6E22B16BDA83A008A7D97 /* known-hosts.plist */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -1920,6 +1923,7 @@
 				3BA73393168C9732005ABFC9 /* IMSPassword.bundle in Resources */,
 				3BA73394168C9732005ABFC9 /* IMSPasswordStoryboard_iPad.storyboard in Resources */,
 				3BA73395168C9732005ABFC9 /* IMSPasswordStoryboard_iPhone.storyboard in Resources */,
+				24E6E22C16BDA83A008A7D97 /* known-hosts.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
