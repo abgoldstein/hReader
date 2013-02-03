@@ -75,7 +75,7 @@ static NSString *HROAuthURLHost = @"oauth";
     
     // Show the HUD to block while we fetch our access tokens
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        if ([self.client refreshAccessTokenWithParameters:parameters]) {
+        if ([self.client requestAccessTokenWithParameters:parameters]) {
             dispatch_async(dispatch_get_main_queue(), ^{
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"

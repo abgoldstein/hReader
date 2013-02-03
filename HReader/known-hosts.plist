@@ -38,11 +38,11 @@
 		<key>clientSecret</key>
 		<string>APNCa0VUQ-s-MccaBVosX_KwBRzkGT1Z9UXdroMwHhn1DPXZAemSytOQC1pfbOlQ8Dtdo6pmUSD5H2Z2kW03Xcw</string>
 		<key>identityServer</key>
-		<string>http://ground.mitre.org/</string>
+		<string>http://ground.mitre.org:8080/openid-connect-server/</string>
 		<key>identityPath</key>
 		<string>authorize</string>
 		<key>authenticationServer</key>
-		<string>http://ground.mitre.org/</string>
+		<string>http://ground.mitre.org:8080/openid-connect-server/</string>
 		<key>authenticationPath</key>
 		<string>token</string>
 		<key>dataServer</key>

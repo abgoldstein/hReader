@@ -23,19 +23,6 @@
 
 /*
  
- Get the access token payload given the appropriate parameters. This method
- will not execute anything if another request is in 
- 
- The parameters dictionary MUST contain the "grant_type" which should be either 
- "authorization_code" or "refresh_token", and the appropriate associated value.
- 
- It is up to the caller to validate the returned payload and store any values.
- 
- */
-- (BOOL)refreshAccessTokenWithParameters:(NSDictionary *)parameters;
-
-/*
- 
  Request the patient feed from the receiver. This method returns imediatly and
  notifies the caller upon completion using the completion block.
  

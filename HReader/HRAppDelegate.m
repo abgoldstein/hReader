@@ -196,7 +196,7 @@
         // Connect to our sources of data and sync
         if ([hosts count] == 0) {
             // If we haven't authenticated with any servers, attempt to do so.
-            HRAPIClient *client = [HRAPIClient clientWithHost:@"default"];
+            HRAPIClient *client = [HRAPIClient clientWithHost:@"ground"];
             [client requestAuthorization];
         } else {
             // We've already authenticated, so just update local data from servers
@@ -284,34 +284,15 @@
         HRAPIClient *client = [HRAPIClient clientWithHost:[parameters objectForKey:@"host"]];
         
         // Continue the authorization process
-        NSDictionary *refreshParameters = @{@"code" : [parameters objectForKey:@"code"]};
+        NSDictionary *refreshParameters = @{
+            @"code" : [parameters objectForKey:@"code"],
+            @"grant_type" : @"authorization_code"
+        };
         [client requestAccessTokenWithParameters:refreshParameters];
         
         [self performLaunchSteps];
         
         /*
-        // Form token request
-        NSDictionary *parameters = [HRAPIClient tokenRequestParameters:code];
-        NSString *tokenQuery = [HRAPIClient queryStringWithParameters:parameters];
-        NSString *URLString = [NSString stringWithFormat:@"%@token?%@", HRAuthenticationServer, tokenQuery];
-        NSURL *URL = [NSURL URLWithString:URLString];
-        
-        // Send token request TODO What if this is a failure?
-        NSError *error = nil;
-        NSURLResponse *response = nil;
-        NSURLRequest *request = [[NSURLRequest alloc] initWithURL:URL];
-        NSData* data = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:nil];
-        NSDictionary *resultsJSON = [NSJSONSerialization
-                                     JSONObjectWithData:data
-                                     options:NSJSONReadingAllowFragments
-                                     error:&error];
-        
-        // Parse out token from response
-        NSString *token = [resultsJSON objectForKey:@"access_token"];
-        
-        // Add client with token to hosts list and sync
-        // HRAPIClient *client = [HRAPIClient clientWithHost:HRAuthenticationServer];
-        
         // Grab the patient data
         URL = [NSURL URLWithString:@"http://MM170163-PC.mitre.org:8080/rhex-simple-endpoint/patients"];
         NSString *bearer = [NSString stringWithFormat:@"Bearer %@", token];

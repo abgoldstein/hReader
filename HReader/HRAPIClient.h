@@ -82,11 +82,11 @@
  It is up to the caller to validate the returned payload and store any values.
  
  */
-- (BOOL)requestAccessTokenWithParameters:token:(NSString *)token refreshToken:(NSString *)refreshToken;
+- (BOOL)requestAccessTokenWithParameters:(NSDictionary *)parameters;
 
-- (BOOL)requestAuthorization;
+- (void)requestAuthorization;
 
-- (NSURLRequest *)authenticationRequest:token:(NSString *)token refreshToken:(NSString *)refreshToken;
+- (NSURLRequest *)authenticationRequestWithParameters:(NSDictionary *)parameters;
 
 - (NSURLRequest *)authorizationRequest;
 

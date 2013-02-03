@@ -16,14 +16,10 @@
 
 #define hr_dispatch_main(block) dispatch_async(dispatch_get_main_queue(), block)
 
-// OAuth client resources
-//static NSString * const HROAuthClientIdentifier = @"c367aa7b8c87ce239981140511a7d158";
-//static NSString * const HROAuthClientSecret = @"bc121c529fcd1689704a24460b91f98b";
-static NSString * const HROAuthClientIdentifier = @"hreader";
-static NSString * const HROAuthClientSecret = @"APNCa0VUQ-s-MccaBVosX_KwBRzkGT1Z9UXdroMwHhn1DPXZAemSytOQC1pfbOlQ8Dtdo6pmUSD5H2Z2kW03Xcw";
-static NSString * const HROAuthTokenPath = @"openid-connect-server/authorize";
+// Managing hosts for authentication and patient data
 static NSString * const HROAuthKeychainService = @"org.hreader.oauth.2";
 static NSMutableDictionary *allClients = nil;
+static NSMutableDictionary *knownHostData = nil;
 
 @interface NSString (HRAPIClientAdditions)
 - (NSString *)hr_percentEncodedString;
@@ -90,6 +86,15 @@ static NSMutableDictionary *allClients = nil;
         }
     }];
     return dictionary;
+}
+
++ (NSMutableDictionary *)knownHosts {
+    if (!knownHostData) {
+        NSString *path = [[NSBundle mainBundle] pathForResource:@"known-hosts" ofType:@"plist"];
+        knownHostData = [[NSMutableDictionary alloc] initWithContentsOfFile:path];
+    }
+    
+    return knownHostData;
 }
 
 #pragma mark - retrieve data from the api
@@ -257,50 +262,42 @@ static NSMutableDictionary *allClients = nil;
     // Make sure we have both required elements
     if (_accessToken == nil || _accessTokenExpirationDate == nil || interval < 60.0) {
         HRDebugLog(@"Access token is invalid -- refreshing...");
-        if (![self refreshAccessTokenWithParameters:refreshParameters]) { return; }
+        if (![self requestAccessTokenWithParameters:refreshParameters]) { return; }
     } else if (interval < 60.0 * 3.0) {
         // Check if our access token will expire soon
         HRDebugLog(@"Access token will expire soon -- refreshing later");
         dispatch_async(_requestQueue, ^{
-            [self refreshAccessTokenWithParameters:refreshParameters];
+            [self requestAccessTokenWithParameters:refreshParameters];
         });
     }
 }
 
-- (BOOL)refreshAccessTokenWithParameters:(NSDictionary *)parameters {
-    // build request parameters
-    NSMutableDictionary *requestParameters = [parameters mutableCopy];
-    [requestParameters setObject:HROAuthClientIdentifier forKey:@"client_id"];
-    [requestParameters setObject:HROAuthClientSecret forKey:@"client_secret"];
-    NSString *query = [HRAPIClient queryStringWithParameters:requestParameters];
-    NSData *data = [query dataUsingEncoding:NSUTF8StringEncoding];
-    NSString *length = [NSString stringWithFormat:@"%lu", (unsigned long)[data length]];
-    
-    // build request
-    NSString *URLString = [NSString stringWithFormat:@"https://%@/oauth2/token", _host];
-    NSURL *URL = [NSURL URLWithString:URLString];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:URL];
-    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
-    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
-    [request setValue:length forHTTPHeaderField:@"Content-Length"];
-    [request setHTTPShouldHandleCookies:NO];
-    [request setHTTPMethod:@"POST"];
-    [request setHTTPBody:data];
-    
-    // run request
+- (void)requestAuthorization {
+    NSURLRequest *request = [self authorizationRequest];
+    NSURL *URL = [request URL];
+    [[UIApplication sharedApplication] openURL:URL];
+}
+
+- (BOOL)requestAccessTokenWithParameters:(NSDictionary *)parameters {
+    // Build the request to get an access token
+    NSError *error = nil;
+    NSURLResponse *response = nil;
     NSDictionary *payload = nil;
-    NSError *connectionError = nil;
-    NSHTTPURLResponse *response = nil;
-    NSData *body = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&connectionError];
-    if (connectionError) { HRDebugLog(@"%@", connectionError); }
-    if (body) {
-        NSError *JSONError = nil;
-        payload = [NSJSONSerialization JSONObjectWithData:body options:0 error:&JSONError];
-        if (JSONError) { HRDebugLog(@"%@", JSONError); }
-    }
+    NSURLRequest *request = [self authenticationRequestWithParameters:parameters];
     
-    // parse payload
+    // Send the token request
+    NSData *data = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&error];
+    if (data) {
+        // If we got data back, parse the response and check for errors.
+        payload = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingAllowFragments error:&error];
+        if (error) { HRDebugLog(@"%@", error); }
+    } else {
+        HRDebugLog(@"%@", error);
+    }
+
+    // Handle the response we got based on success or failure
     if ([payload objectForKey:@"expires_in"] && [payload objectForKey:@"access_token"]) {
+        // We were granted a token. Store the data appropriately
         if ([payload objectForKey:@"refresh_token"]) {
             HRCryptoManagerSetKeychainItemString(HROAuthKeychainService, _host, [payload objectForKey:@"refresh_token"]);
         }
@@ -308,34 +305,14 @@ static NSMutableDictionary *allClients = nil;
         _accessTokenExpirationDate = [NSDate dateWithTimeIntervalSinceNow:interval];
         _accessToken = [payload objectForKey:@"access_token"];
         return YES;
-    }
-    
-    // unauthorized
-    else if ([[payload objectForKey:@"error"] isEqualToString:@"invalid_grant"]) {
-        [[HRAPIClient authorizationLock] lock];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            HRRHExLoginViewController *controller = [HRRHExLoginViewController loginViewControllerForClient:self];
-            controller.target = self;
-            controller.action = @selector(loginControllerDidAuthenticate:);
-            UINavigationController *navigation = [[UINavigationController alloc] initWithRootViewController:controller];
-            id<UIApplicationDelegate> delegate = [[UIApplication sharedApplication] delegate];
-            [[[delegate window] rootViewController] presentViewController:navigation animated:YES completion:nil];
-        });
-        _authorizationLock = [[NSConditionLock alloc] initWithCondition:0];
-        [_authorizationLock lockWhenCondition:1];
-        [_authorizationLock unlock];
-        _authorizationLock = nil;
-        [[HRAPIClient authorizationLock] unlock];
+    } else if ([[payload objectForKey:@"error"] isEqualToString:@"invalid_grant"]) {
+        HRDebugLog(@"Request for access token denied. Retrying.");
+        [self requestAuthorization];
         return YES;
-        
-    }
-    
-    // payload error
-    else {
+    } else {
         HRDebugLog(@"%@", payload);
     }
-    
-    // last ditch return
+
     return NO;
 }
 
@@ -379,15 +356,48 @@ static NSMutableDictionary *allClients = nil;
     return request;
 }
 
+- (NSString *)hostDataByKey:(NSString *)key {
+    NSMutableDictionary *hostData = [[HRAPIClient knownHosts] objectForKey:_host];
+    return [hostData objectForKey:key];
+}
+
 - (NSURLRequest *)authorizationRequest {
+    // Build the parameters to retrieve an OpenID authorization code
     NSDictionary *parameters = @{
-        @"client_id" : HROAuthClientIdentifier,
-        @"client_secret" : HROAuthClientSecret,
+        @"client_id" : [self hostDataByKey:@"clientID"],
+        @"client_secret" : [self hostDataByKey:@"clientSecret"],
         @"response_type" : @"code",
-        @"redirect_uri" : @"hreader://openid"
+        @"scope" : @"openid profile address email phone",
+        @"redirect_uri" : [NSString stringWithFormat:@"hreader://openid?%@", _host]
     };
+    
+    // Build the HTTP request URL using the parameters we just defined
     NSString *query = [HRAPIClient queryStringWithParameters:parameters];
-    NSString *URLString = [NSString stringWithFormat:@"%@/%@?%@", _host, HROAuthTokenPath, query];
+    NSString *URLString = [NSString stringWithFormat:@"%@%@?%@",
+                           [self hostDataByKey:@"identityServer"],
+                           [self hostDataByKey:@"identityPath"],
+                           query];
+    NSURL *URL = [NSURL URLWithString:URLString];
+    
+    return [[NSURLRequest alloc] initWithURL:URL];
+}
+
+- (NSURLRequest *)authenticationRequestWithParameters:(NSDictionary *)parameters {
+    // Build the parameters to retrieve an OAuth2 token
+    NSMutableDictionary *params = [parameters mutableCopy];
+    
+    [params addEntriesFromDictionary:@{
+        @"client_id" : [self hostDataByKey:@"clientID"],
+        @"client_secret" : [self hostDataByKey:@"clientSecret"],
+        @"redirect_uri" : [NSString stringWithFormat:@"hreader://openid?%@", _host]
+    }];
+    
+    // Build the HTTP request URL using the parameters we just defined
+    NSString *query = [HRAPIClient queryStringWithParameters:params];
+    NSString *URLString = [NSString stringWithFormat:@"%@%@?%@",
+                           [self hostDataByKey:@"authenticationServer"],
+                           [self hostDataByKey:@"authenticationPath"],
+                           query];
     NSURL *URL = [NSURL URLWithString:URLString];
     
     return [[NSURLRequest alloc] initWithURL:URL];
@@ -408,15 +418,6 @@ static NSMutableDictionary *allClients = nil;
 - (void)destroy {
     [IMSKeychain deletePasswordForService:HROAuthKeychainService account:_host];
     [allClients removeObjectForKey:_host];
-}
-
-#pragma mark - login callback
-
-- (void)loginControllerDidAuthenticate:(HRRHExLoginViewController *)controller {
-    [controller dismissViewControllerAnimated:YES completion:^{
-        [_authorizationLock lock];
-        [_authorizationLock unlockWithCondition:1];
-    }];
 }
 
 @end
