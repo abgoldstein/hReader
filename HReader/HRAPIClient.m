@@ -368,7 +368,7 @@ static NSMutableDictionary *knownHostData = nil;
         @"client_secret" : [self hostDataByKey:@"clientSecret"],
         @"response_type" : @"code",
         @"scope" : @"openid profile address email phone",
-        @"redirect_uri" : [NSString stringWithFormat:@"hreader://openid?%@", _host]
+        @"redirect_uri" : [NSString stringWithFormat:@"hreader://openid?host=%@", _host]
     };
     
     // Build the HTTP request URL using the parameters we just defined
@@ -389,7 +389,8 @@ static NSMutableDictionary *knownHostData = nil;
     [params addEntriesFromDictionary:@{
         @"client_id" : [self hostDataByKey:@"clientID"],
         @"client_secret" : [self hostDataByKey:@"clientSecret"],
-        @"redirect_uri" : [NSString stringWithFormat:@"hreader://openid?%@", _host]
+        @"redirect_uri" : [NSString stringWithFormat:@"hreader://openid?host=%@", _host],
+        @"approval_prompt" : @"force"
     }];
     
     // Build the HTTP request URL using the parameters we just defined
@@ -418,6 +419,10 @@ static NSMutableDictionary *knownHostData = nil;
 - (void)destroy {
     [IMSKeychain deletePasswordForService:HROAuthKeychainService account:_host];
     [allClients removeObjectForKey:_host];
+}
+
+- (NSString *)accessToken {
+    return _accessToken;
 }
 
 @end

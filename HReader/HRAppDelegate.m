@@ -279,6 +279,8 @@
     
     // If we're being sent an authentication code for OpenID, continue the authenetication process and retrieve an OAuth token.
     if ([host isEqualToString:@"openid"]) {
+        // TODO Check for errors, e.g. invalid scope
+        
         // Fetch the host for which we just received a code
         NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[url query]];
         HRAPIClient *client = [HRAPIClient clientWithHost:[parameters objectForKey:@"host"]];
@@ -290,18 +292,32 @@
         };
         [client requestAccessTokenWithParameters:refreshParameters];
         
-        [self performLaunchSteps];
+        //[self performLaunchSteps];
         
-        /*
-        // Grab the patient data
-        URL = [NSURL URLWithString:@"http://MM170163-PC.mitre.org:8080/rhex-simple-endpoint/patients"];
-        NSString *bearer = [NSString stringWithFormat:@"Bearer %@", token];
+        // Grab the patient data. TODO: Get this in to the usual patient sync workflow.
+        NSError *error = nil;
+        NSHTTPURLResponse *response = nil;
+        NSString *URL = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [client hostDataByKey:@"dataServer"], [client hostDataByKey:@"dataPath"]]];
+        NSString *bearer = [NSString stringWithFormat:@"Bearer %@", [client accessToken]];
         NSMutableURLRequest *patientRequest = [[NSMutableURLRequest alloc] initWithURL:URL];
         [patientRequest setValue:bearer forHTTPHeaderField:@"Authorization"];
         [patientRequest setHTTPMethod:@"GET"];
         
-        data = [NSURLConnection sendSynchronousRequest:patientRequest returningResponse:&response error:&error];
+        NSData *data = [NSURLConnection sendSynchronousRequest:patientRequest returningResponse:&response error:&error];
         NSString *patient = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        
+        [[[UIAlertView alloc]
+          initWithTitle:[NSString stringWithFormat:@"Just retrieved this patient: %@", patient]
+          message:nil
+          delegate:nil
+          cancelButtonTitle:@"OK"
+          otherButtonTitles:nil]
+         show];
+        
+        /*
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
+        HRPeopleSetupViewController *setup = [storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];
+        [setup.navigationController pushViewController:setup animated:YES];
          */
         
         return YES;
@@ -320,7 +336,7 @@
     }
     [securityNavigationController dismissViewControllerAnimated:NO completion:nil];
     securityNavigationController = nil;
-    [self presentPasscodeVerificationController:NO];
+    //[self presentPasscodeVerificationController:NO];
 }
 
 #pragma mark - security scenario one

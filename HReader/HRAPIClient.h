@@ -90,5 +90,9 @@
 
 - (NSURLRequest *)authorizationRequest;
 
+- (NSString *)hostDataByKey:(NSString *)key;
+
+- (NSString *)accessToken;
+
 @end
 
