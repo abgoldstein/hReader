@@ -26,6 +26,8 @@
 #import "IMSPasswordViewController.h"
 #import <SecureFoundation/SecureFoundation.h>
 
+static NSString *HRDefaultHost = @"ground";
+
 @implementation HRAppDelegate {
     NSUInteger passcodeAttempts;
     UINavigationController *securityNavigationController;
@@ -196,7 +198,7 @@
         // Connect to our sources of data and sync
         if ([hosts count] == 0) {
             // If we haven't authenticated with any servers, attempt to do so.
-            HRAPIClient *client = [HRAPIClient clientWithHost:@"ground"];
+            HRAPIClient *client = [HRAPIClient clientWithHost:HRDefaultHost];
             [client requestAuthorization];
         } else {
             // We've already authenticated, so just update local data from servers
@@ -285,41 +287,15 @@
         NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[url query]];
         HRAPIClient *client = [HRAPIClient clientWithHost:[parameters objectForKey:@"host"]];
         
-        // Continue the authorization process
+        // Continue the authorization process - Try to authenticate and get an access token
         NSDictionary *refreshParameters = @{
             @"code" : [parameters objectForKey:@"code"],
             @"grant_type" : @"authorization_code"
         };
         [client requestAccessTokenWithParameters:refreshParameters];
         
-        //[self performLaunchSteps];
-        
-        // Grab the patient data. TODO: Get this in to the usual patient sync workflow.
-        NSError *error = nil;
-        NSHTTPURLResponse *response = nil;
-        NSString *URL = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", [client hostDataByKey:@"dataServer"], [client hostDataByKey:@"dataPath"]]];
-        NSString *bearer = [NSString stringWithFormat:@"Bearer %@", [client accessToken]];
-        NSMutableURLRequest *patientRequest = [[NSMutableURLRequest alloc] initWithURL:URL];
-        [patientRequest setValue:bearer forHTTPHeaderField:@"Authorization"];
-        [patientRequest setHTTPMethod:@"GET"];
-        
-        NSData *data = [NSURLConnection sendSynchronousRequest:patientRequest returningResponse:&response error:&error];
-        NSString *patient = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        
-        [[[UIAlertView alloc]
-          initWithTitle:[NSString stringWithFormat:@"Just retrieved this patient: %@", patient]
-          message:nil
-          delegate:nil
-          cancelButtonTitle:@"OK"
-          otherButtonTitles:nil]
-         show];
-        
-        /*
-        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
-        HRPeopleSetupViewController *setup = [storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];
-        [setup.navigationController pushViewController:setup animated:YES];
-         */
-        
+        // Armed with our recently authenticated host, continue launching
+        [self performLaunchSteps];
         return YES;
     }
     
@@ -328,7 +304,7 @@
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
     // For now, destroy stored encryption keys.
-    HRCryptoManagerPurge();
+    // HRCryptoManagerPurge();
     
     // Reset crypto interface. User will need to reauthenticate when the application regains focus.
     if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {

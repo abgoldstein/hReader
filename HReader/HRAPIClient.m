@@ -63,6 +63,9 @@ static NSMutableDictionary *knownHostData = nil;
 }
 
 + (NSArray *)hosts {
+    NSArray *accounts = [IMSKeychain accountsForService:HROAuthKeychainService];
+    NSArray *hosts = [accounts valueForKey:(__bridge NSString *)kSecAttrAccount];
+    
     return [[IMSKeychain accountsForService:HROAuthKeychainService] valueForKey:(__bridge NSString *)kSecAttrAccount];
 }
 
@@ -298,8 +301,8 @@ static NSMutableDictionary *knownHostData = nil;
     // Handle the response we got based on success or failure
     if ([payload objectForKey:@"expires_in"] && [payload objectForKey:@"access_token"]) {
         // We were granted a token. Store the data appropriately
-        if ([payload objectForKey:@"refresh_token"]) {
-            HRCryptoManagerSetKeychainItemString(HROAuthKeychainService, _host, [payload objectForKey:@"refresh_token"]);
+        if ([payload objectForKey:@"access_token"]) {
+            HRCryptoManagerSetKeychainItemString(HROAuthKeychainService, _host, [payload objectForKey:@"access_token"]);
         }
         NSTimeInterval interval = [[payload objectForKey:@"expires_in"] doubleValue];
         _accessTokenExpirationDate = [NSDate dateWithTimeIntervalSinceNow:interval];
