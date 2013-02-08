@@ -10,6 +10,8 @@
 
 @interface HRAPIClient : NSObject
 
++ (NSString *)queryStringWithParameters:(NSDictionary *)parameters;
+
 /*
  
  Decode the given query string into a set of parameters.
@@ -69,4 +71,28 @@
  */
 - (NSDictionary *)JSONForPatientWithIdentifier:(NSString *)identifier;
 
+/*
+ 
+ Get the access token payload given the appropriate parameters. This method
+ will not execute anything if another request is in
+ 
+ The parameters dictionary MUST contain the "grant_type" which should be either
+ "authorization_code" or "refresh_token", and the appropriate associated value.
+ 
+ It is up to the caller to validate the returned payload and store any values.
+ 
+ */
+- (BOOL)requestAccessTokenWithParameters:(NSDictionary *)parameters;
+
+- (void)requestAuthorization;
+
+- (NSURLRequest *)authenticationRequestWithParameters:(NSDictionary *)parameters;
+
+- (NSURLRequest *)authorizationRequest;
+
+- (NSString *)hostDataByKey:(NSString *)key;
+
+- (NSString *)accessToken;
+
 @end
+

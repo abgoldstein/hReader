@@ -26,6 +26,7 @@
 #import "IMSPasswordViewController.h"
 #import <SecureFoundation/SecureFoundation.h>
 
+static NSString *HRDefaultHost = @"ground";
 
 @implementation HRAppDelegate {
     NSUInteger passcodeAttempts;
@@ -35,6 +36,9 @@
 
 #pragma mark - class methods
 
+/**
+ * Retrieve the PersistentStoreCoordinator. This is mostly used to attach the coordinator to MOCs.
+ */
 + (NSPersistentStoreCoordinator *)persistentStoreCoordinator {
     static NSPersistentStoreCoordinator *coordinator = nil;
     static dispatch_once_t token;
@@ -43,9 +47,13 @@
         NSManagedObjectModel *model = [[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL];
         coordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:model];
     });
+    
     return coordinator;
 }
 
+/**
+ * Returns the MOC that we use essentially for FIFO synchronous background tasks.
+ */
 + (NSManagedObjectContext *)rootManagedObjectContext {
     static NSManagedObjectContext *context = nil;
     static dispatch_once_t token;
@@ -56,6 +64,10 @@
     return context;
 }
 
+/**
+ * Returns the MOC that we use essentially for FIFO synchronous tasks for the main application.
+ * For example, UI events may be queued here. Note that main tasks are enqueued onto the rootMOC, meaing we will have to wait our turn.
+ */
 + (NSManagedObjectContext *)managedObjectContext {
     static NSManagedObjectContext *context = nil;
     static dispatch_once_t token;
@@ -68,35 +80,40 @@
 
 #pragma mark - object methods
 
+/**
+ * Called while launching to define the PersistentStoreCoordinator. Opens our secured DB.
+ */
 - (void)addPersistentStoreIfNeeded {
-    if (persistentStore == nil) {
-        NSError *error = nil;
-        NSPersistentStoreCoordinator *coordinator = [HRAppDelegate persistentStoreCoordinator];
-        
-        // store configuration
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        NSURL *applicationSupportURL = [[fileManager URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask] lastObject];
-        [fileManager createDirectoryAtURL:applicationSupportURL withIntermediateDirectories:NO attributes:nil error:nil];
-        NSURL *databaseURL = [applicationSupportURL URLByAppendingPathComponent:@"database.sqlite3.2"];
-        NSDictionary *options = @{
-            NSPersistentStoreFileProtectionKey : NSFileProtectionComplete,
-            NSMigratePersistentStoresAutomaticallyOption : @YES,
-            NSInferMappingModelAutomaticallyOption : @YES
-        };
-        
-        // add store
-        persistentStore = HRCryptoManagerAddEncryptedStoreToCoordinator(coordinator,
-                                                                        nil,
-                                                                        databaseURL,
-                                                                        options,
-                                                                        &error);
-        NSAssert(persistentStore, @"Unable to add persistent store\n%@", error);
-        
-    }
+    if (persistentStore != nil) { return; }
+    
+    NSError *error = nil;
+    NSPersistentStoreCoordinator *coordinator = [HRAppDelegate persistentStoreCoordinator];
+    
+    // Define behavior of our persistent store. 
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *applicationSupportURL = [[fileManager URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask] lastObject];
+    [fileManager createDirectoryAtURL:applicationSupportURL withIntermediateDirectories:NO attributes:nil error:nil];
+    NSURL *databaseURL = [applicationSupportURL URLByAppendingPathComponent:@"database.sqlite3.2"];
+    NSDictionary *options = @{
+        NSPersistentStoreFileProtectionKey : NSFileProtectionComplete,
+        NSMigratePersistentStoresAutomaticallyOption : @YES,
+        NSInferMappingModelAutomaticallyOption : @YES
+    };
+    
+    // add store
+    persistentStore = HRCryptoManagerAddEncryptedStoreToCoordinator(coordinator,
+                                                                    nil,
+                                                                    databaseURL,
+                                                                    options,
+                                                                    &error);
+    NSAssert(persistentStore, @"Unable to add persistent store\n%@", error);
 }
 
-- (void)performLaunchSteps {
-    
+
+/**
+ * Exit the application if we find we are compromised. Checks for some basic forms of vulnerability.
+ */
+- (void)abortIfCompromised {
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
 #define PEACE_OUT() raise(SIGKILL); abort(); exit(EXIT_FAILURE);
     
@@ -133,27 +150,36 @@
     };
     
 #endif
+}
+
+/**
+ * Have the user perform any necessary authentication tasks as the applciation launches.
+ * For the first run, they will be required to sign the HIPPA notice, create a passcode, etc.
+ * For all subsequent runs, the user will just be prompted for their passcode.
+ */
+- (void)performLaunchSteps {
+    [self abortIfCompromised];
     
-    // check for hippa message
     if (![HRHIPPAMessageViewController hasAcceptedHIPPAMessage]) {
+        // If the user hasn't accepted the HIPPA message yet, present it to them
         UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
         HRHIPPAMessageViewController *controller = [storyboard instantiateViewControllerWithIdentifier:@"HIPPAViewController"];
         controller.navigationItem.hidesBackButton = YES;
         controller.target = self;
         controller.action = _cmd;
+        
         UINavigationController *navigation = (id)self.window.rootViewController;
         [navigation popToRootViewControllerAnimated:NO];
         [navigation pushViewController:controller animated:YES];
-    }
-    
-    // check for passcode
-    else if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {
+    } else if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {
+        // If the user hasn't configured their passcode or security questions yet, prompt them to do so
         UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
         IMSPasswordViewController *password = [storyboard instantiateViewControllerWithIdentifier:@"CreatePasscodeViewController"];
         password.title = @"Set Password";
         password.target = self;
         password.action = @selector(createInitialPasscode::);
         password.navigationItem.hidesBackButton = YES;
+        
         [(id)self.window.rootViewController pushViewController:password animated:YES];
         [[[UIAlertView alloc]
           initWithTitle:@"Welcome"
@@ -162,34 +188,25 @@
           cancelButtonTitle:@"OK"
           otherButtonTitles:nil]
          show];
-    }
-    
-    // unlocked
-    else if (HRCryptoManagerIsUnlocked()) {
+    } else if (HRCryptoManagerIsUnlocked()) {
+        // Crypto has been configured, so try to log in
         NSArray *hosts = [HRAPIClient hosts];
         UIViewController *controller = [(id)self.window.rootViewController topViewController];
         
-        // load persistent store
         [self addPersistentStoreIfNeeded];
         
-        // check for accounts
+        // Connect to our sources of data and sync
         if ([hosts count] == 0) {
-            HRAPIClient *client = [HRAPIClient clientWithHost:@"growing-spring-4857.herokuapp.com"];
-            HRRHExLoginViewController *controller = [HRRHExLoginViewController loginViewControllerForClient:client];
-            controller.navigationItem.hidesBackButton = YES;
-            controller.target = self;
-            controller.action = @selector(initialLoginDidSucceed:);
-            [(id)self.window.rootViewController pushViewController:controller animated:YES];
-        }
-        
-        // carry on
-        else {
-            
-            // update local data
+            // If we haven't authenticated with any servers, attempt to do so.
+            HRAPIClient *client = [HRAPIClient clientWithHost:HRDefaultHost];
+            [client requestAuthorization];
+        } else {
+            // We've already authenticated, so just update local data from servers
             NSString *host = [hosts lastObject];
             [[HRAPIClient clientWithHost:host] patientFeed:nil];
             [HRMPatient performSync];
-            // push storyboard if we need to
+            
+            // Present the People Setup view if it's not already being shown
             if ([controller isKindOfClass:[HRSplashScreenViewController class]] ||
                 [controller isKindOfClass:[HRHIPPAMessageViewController class]]) {
                 UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
@@ -197,23 +214,20 @@
                 [[controller navigationItem] setHidesBackButton:YES];
                 [(id)self.window.rootViewController pushViewController:controller animated:YES];
             }
-            
         }
-        
-    }
-    
-    // locked
-    else {
+    } else {
+        // Otherwise, we have not successfully authenticated yet, so let the user login
         [self presentPasscodeVerificationController:YES];
     }
-    
 }
 
 #pragma mark - notifications
 
+/**
+ * Called anytime a MOC is saved.
+ */
 - (void)managedObjectContextDidSave:(NSNotification *)notification {
-    
-    // get contexts
+    // Get contexts
     NSManagedObjectContext *rootContext = [HRAppDelegate rootManagedObjectContext];
     NSManagedObjectContext *mainContext = [HRAppDelegate managedObjectContext];
     NSManagedObjectContext *savingContext = [notification object];
@@ -238,45 +252,67 @@
 
 #pragma mark - application lifecycle
 
+/**
+ * Called once the app has launched.
+ */
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    
-    // notifications
+    // Register a notification to call our MOC save handler whenever a MOC completes a save
     [[NSNotificationCenter defaultCenter]
      addObserver:self
      selector:@selector(managedObjectContextDidSave:)
      name:NSManagedObjectContextDidSaveNotification
      object:nil];
-    
+   
+    // ABG TODO why do we wait here? Can't we just call dispatch_async?
     dispatch_time_t time = dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC);
     dispatch_after(time, dispatch_get_main_queue(), ^(void){
         [self performLaunchSteps];
     });
     
-    // return
     return YES;
+}
+
+/**
+ * This is the entry point when another application invokes us with a URL. We hit this method from Safari notifying us
+ * that a user has successfully authorized with an identity server.
+ */
+- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url {
+    NSString *host = [url host];
     
+    // If we're being sent an authentication code for OpenID, continue the authenetication process and retrieve an OAuth token.
+    if ([host isEqualToString:@"openid"]) {
+        // TODO Check for errors, e.g. invalid scope
+        
+        // Fetch the host for which we just received a code
+        NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[url query]];
+        HRAPIClient *client = [HRAPIClient clientWithHost:[parameters objectForKey:@"host"]];
+        
+        // Continue the authorization process - Try to authenticate and get an access token
+        NSDictionary *refreshParameters = @{
+            @"code" : [parameters objectForKey:@"code"],
+            @"grant_type" : @"authorization_code"
+        };
+        [client requestAccessTokenWithParameters:refreshParameters];
+        
+        // Armed with our recently authenticated host, continue launching
+        [self performLaunchSteps];
+        return YES;
+    }
+    
+    return NO;
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
+    // For now, destroy stored encryption keys.
+    // HRCryptoManagerPurge();
     
-    // remove persistent store
-//    NSPersistentStoreCoordinator *coordinator = [HRAppDelegate persistentStoreCoordinator];
-//    if ([coordinator removePersistentStore:persistentStore error:nil]) {
-//        persistentStore = nil;
-//        [[HRAppDelegate managedObjectContext] reset];
-//    }
-    
-    // destroy encryption keys
-    HRCryptoManagerPurge();
-    
-    // reset interface
+    // Reset crypto interface. User will need to reauthenticate when the application regains focus.
     if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {
         [(id)self.window.rootViewController popToRootViewControllerAnimated:NO];
     }
     [securityNavigationController dismissViewControllerAnimated:NO completion:nil];
     securityNavigationController = nil;
-    [self presentPasscodeVerificationController:NO];
-    
+    //[self presentPasscodeVerificationController:NO];
 }
 
 #pragma mark - security scenario one
@@ -442,6 +478,12 @@
 }
 
 #pragma mark - security scenario five
+
+/*
+ 
+ Methods used when the user has successfully autheticated
+ 
+ */
 
 - (void)initialLoginDidSucceed :(HRRHExLoginViewController *)login {
     HRPeopleSetupViewController *setup = [login.storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];

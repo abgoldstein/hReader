@@ -20,16 +20,18 @@ static NSString *HROAuthURLHost = @"oauth";
 @property (nonatomic, strong) IBOutlet UIToolbar *navigationToolbar;
 @property (nonatomic, weak) IBOutlet UIWebView *webView;
 @property (nonatomic, strong) HRAPIClient *client;
+@property (nonatomic, weak) NSString *authenticationCode;
 @end
 
 @implementation HRRHExLoginViewController
 
 #pragma mark - class methods
 
-+ (HRRHExLoginViewController *)loginViewControllerForClient:(HRAPIClient *)client {
++ (HRRHExLoginViewController *)loginViewControllerForClient:(HRAPIClient *)client code:(NSString *)code {
     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
     HRRHExLoginViewController *controller = [storyboard instantiateViewControllerWithIdentifier:@"RHExLoginViewController"];
     controller.client = client;
+    controller.authenticationCode = code;
     return controller;
 }
 
@@ -56,69 +58,77 @@ static NSString *HROAuthURLHost = @"oauth";
     UIBarButtonItem *item = [[UIBarButtonItem alloc] initWithCustomView:self.navigationToolbar];
     self.navigationItem.leftBarButtonItem = item;
     
-    // other
     [CMDActivityHUD show];
     [self.webView loadRequest:[self.client authorizationRequest]];
-    
 }
 
 #pragma mark - web view delegate
 
 - (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
+    return YES;
     
-    // check headers
-    static NSString *targetHeaderFieldValue = @"ipad";
-    static NSString *headerFieldKey = @"x-org-mitre-hreader";
-    NSString *currentFieldValue = [request valueForHTTPHeaderField:headerFieldKey];
+    if ([self requestIsInvalid:request]) { return YES; }
+
+    // Collect our parameters for authentication
+    NSURL *URL = [request URL];
+    NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[URL query]];
+    
+    // Show the HUD to block while we fetch our access tokens
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        if ([self.client requestAccessTokenWithParameters:parameters]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                [self.target performSelector:self.action withObject:self];
+#pragma clang diagnostic pop
+            });
+        } else {
+            NSLog(@"Error %@ %d", NSStringFromClass([self class]), __LINE__);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [[[UIAlertView alloc]
+                  initWithTitle:@"Unable to get access tokens from server"
+                  message:nil
+                  delegate:nil
+                  cancelButtonTitle:@"OK"
+                  otherButtonTitles:nil]
+                  show];
+            });
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [CMDActivityHUD dismiss];
+        });
+    });
+    
+    return YES;
+}
+
+- (BOOL)requestIsInvalid: (NSURLRequest *)request {
+    // Request headers to mark us as hReader.
+    // static NSString *targetHeaderFieldValue = @"ipad";
+    // static NSString *headerFieldKey = @"x-org-mitre-hreader";
+    
+    // If our headers aren't marked as hReader, don't handle this request but register a new one with the correct headers.
+    // TODO: This is obselete once RHEx is updated to properly use OpenID because we'll use clientIDs. This hack gets around Devise.
+    /*NSString *currentFieldValue = [request valueForHTTPHeaderField:headerFieldKey];
     if (![currentFieldValue isEqualToString:targetHeaderFieldValue]) {
         NSMutableURLRequest *mutableRequest = [request mutableCopy];
         [mutableRequest setValue:targetHeaderFieldValue forHTTPHeaderField:headerFieldKey];
-        [webView loadRequest:mutableRequest];
-        return NO;
-    }
+        [self.webView loadRequest:mutableRequest];
+        return YES;
+    }*/
     
-    NSURL *URL = [request URL];
-    if ([[URL scheme] isEqualToString:HROAuthURLScheme] && [[URL host] isEqualToString:HROAuthURLHost]) {
-        [CMDActivityHUD show];
-        
-        // get parameters
-        NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[URL query]];
-        parameters = @{
-            @"code" : [parameters objectForKey:@"code"],
-            @"grant_type" : @"authorization_code"
-        };
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            if ([self.client refreshAccessTokenWithParameters:parameters]) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                    [self.target performSelector:self.action withObject:self];
-#pragma clang diagnostic pop
-                });
-            }
-            else {
-                NSLog(@"Error %@ %d", NSStringFromClass([self class]), __LINE__);
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [[[UIAlertView alloc]
-                      initWithTitle:@"Unable to get access tokens from server"
-                      message:nil
-                      delegate:nil
-                      cancelButtonTitle:@"OK"
-                      otherButtonTitles:nil]
-                     show];
-                });
-            }
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [CMDActivityHUD dismiss];
-            });
-        });
-        
-    }
+    // Only attempt to authenticate with a server that we know
+    /*NSURL *URL = [request URL];
+    if (![[URL scheme] isEqualToString:HROAuthURLScheme] || ![[URL host] isEqualToString:HROAuthURLHost]) {
+        return YES;
+    }*/
+    
     return YES;
 }
 
 - (void)webViewDidFinishLoad:(UIWebView *)webView {
     [CMDActivityHUD dismiss];
+    
     NSArray *buttons = self.navigationToolbar.items;
     [(UIBarButtonItem *)buttons[0] setEnabled:[webView canGoBack]];
     [(UIBarButtonItem *)buttons[1] setEnabled:[webView canGoForward]];
