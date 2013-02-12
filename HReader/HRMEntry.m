@@ -27,6 +27,7 @@
 @dynamic comments;
 @dynamic patientComments;
 @dynamic userDeleted;
+@dynamic dischargeDisposition;
 
 + (HRMEntry *)instanceWithDictionary:(NSDictionary *)dictionary
                                 type:(HRMEntryType)type
@@ -53,7 +54,7 @@
     }
     object = [dictionary objectForKey:@"start_time"];
     if (object && [object isKindOfClass:[NSNumber class]]) {
-        NSTimeInterval stamp = [object doubleValue];
+        NSTimeInterval stamp = [object doubleValue] / 1000;
         entry.startDate = [NSDate dateWithTimeIntervalSince1970:stamp];
     }
     object = [dictionary objectForKey:@"end_time"];
@@ -80,6 +81,10 @@
     object = [dictionary objectForKey:@"severity"];
     if (object && [object isKindOfClass:[NSDictionary class]]) {
         entry.severity = object;
+    }
+    object = [dictionary objectForKey:@"dischargeDisposition"];
+    if (object && [object isKindOfClass:[NSString class]]) {
+        entry.dischargeDisposition = object;
     }
     
     // return

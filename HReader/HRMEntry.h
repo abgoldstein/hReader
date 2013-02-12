@@ -53,6 +53,7 @@ typedef NS_ENUM(int, HRMEntryType) {
 @property (nonatomic, retain) NSDictionary *codes;
 @property (nonatomic, retain) NSDictionary *dose;
 @property (nonatomic, retain) NSNumber *type;
+@property (nonatomic, retain) NSString *dischargeDisposition;
 @property (nonatomic, retain) HRMPatient *patient;
 
 @property (nonatomic, retain) NSDictionary *patientComments;
