@@ -106,8 +106,8 @@ NSArray * HRCryptoManagerSecurityQuestions(void) {
     return IMSCryptoManagerSecurityQuestions();
 }
 
-void HRCryptoManagerSetKeychainItemString(NSString *service, NSString *account, NSString *value) {
-    [IMSKeychain setSecurePassword:value forService:service account:account];
+BOOL HRCryptoManagerSetKeychainItemString(NSString *service, NSString *account, NSString *value) {
+    return [IMSKeychain setSecurePassword:value forService:service account:account];
 }
 
 void HRCryptoManagerSetKeychainItemData(NSString *service, NSString *account, NSData *value) {

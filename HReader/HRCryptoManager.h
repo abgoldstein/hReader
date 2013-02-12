@@ -39,7 +39,7 @@ NSData *HRCryptoManagerHashData(NSData *data);
 NSData * HRCryptoManagerKeychainItemData(NSString *service, NSString *account);
 NSString * HRCryptoManagerKeychainItemString(NSString *service, NSString *account);
 void HRCryptoManagerSetKeychainItemData(NSString *service, NSString *account, NSData *value);
-void HRCryptoManagerSetKeychainItemString(NSString *service, NSString *account, NSString *value);
+BOOL HRCryptoManagerSetKeychainItemString(NSString *service, NSString *account, NSString *value);
 BOOL HRCryptoManagerHasPasscode(void);
 BOOL HRCryptoManagerHasSecurityQuestions(void);
 void HRCryptoManagerStoreTemporaryPasscode(NSString *code);
