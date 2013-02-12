@@ -1,4 +1,4 @@
-//
+ //
 //  HRAppDelegate.m
 //  HReader
 //
@@ -26,7 +26,7 @@
 #import "IMSPasswordViewController.h"
 #import <SecureFoundation/SecureFoundation.h>
 
-static NSString *HRDefaultHost = @"ground";
+static NSString *HRDefaultHost = @"local";
 
 @implementation HRAppDelegate {
     NSUInteger passcodeAttempts;
@@ -191,29 +191,29 @@ static NSString *HRDefaultHost = @"ground";
     } else if (HRCryptoManagerIsUnlocked()) {
         // Crypto has been configured, so try to log in
         NSArray *hosts = [HRAPIClient hosts];
-        UIViewController *controller = [(id)self.window.rootViewController topViewController];
-        
         [self addPersistentStoreIfNeeded];
         
         // Connect to our sources of data and sync
         if ([hosts count] == 0) {
             // If we haven't authenticated with any servers, attempt to do so.
             HRAPIClient *client = [HRAPIClient clientWithHost:HRDefaultHost];
-            [client requestAuthorization];
+            NSString *authorizationCode = [client authorizationCode];
+            
+            if (authorizationCode) {
+                // Continue the authorization process - Try to authenticate and get an access token
+                NSDictionary *refreshParameters = @{
+                                                    @"code" : authorizationCode,
+                                                    @"grant_type" : @"authorization_code"
+                                                    };
+                BOOL success = [client requestAccessTokenWithParameters:refreshParameters];
+                if (success) { [self performLaunchSteps]; };
+            } else {
+                [client requestAuthorization];
+            }
         } else {
             // We've already authenticated, so just update local data from servers
             NSString *host = [hosts lastObject];
-            [[HRAPIClient clientWithHost:host] patientFeed:nil];
-            [HRMPatient performSync];
-            
-            // Present the People Setup view if it's not already being shown
-            if ([controller isKindOfClass:[HRSplashScreenViewController class]] ||
-                [controller isKindOfClass:[HRHIPPAMessageViewController class]]) {
-                UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
-                id controller = [storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];
-                [[controller navigationItem] setHidesBackButton:YES];
-                [(id)self.window.rootViewController pushViewController:controller animated:YES];
-            }
+            [self initialLoginDidSucceed:host];
         }
     } else {
         // Otherwise, we have not successfully authenticated yet, so let the user login
@@ -286,15 +286,8 @@ static NSString *HRDefaultHost = @"ground";
         // Fetch the host for which we just received a code
         NSDictionary *parameters = [HRAPIClient parametersFromQueryString:[url query]];
         HRAPIClient *client = [HRAPIClient clientWithHost:[parameters objectForKey:@"host"]];
+        [client setAuthorizationCode:[parameters objectForKey:@"code"]];
         
-        // Continue the authorization process - Try to authenticate and get an access token
-        NSDictionary *refreshParameters = @{
-            @"code" : [parameters objectForKey:@"code"],
-            @"grant_type" : @"authorization_code"
-        };
-        [client requestAccessTokenWithParameters:refreshParameters];
-        
-        // Armed with our recently authenticated host, continue launching
         [self performLaunchSteps];
         return YES;
     }
@@ -304,7 +297,7 @@ static NSString *HRDefaultHost = @"ground";
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
     // For now, destroy stored encryption keys.
-    // HRCryptoManagerPurge();
+    HRCryptoManagerPurge();
     
     // Reset crypto interface. User will need to reauthenticate when the application regains focus.
     if (!HRCryptoManagerHasPasscode() || !HRCryptoManagerHasSecurityQuestions()) {
@@ -485,10 +478,19 @@ static NSString *HRDefaultHost = @"ground";
  
  */
 
-- (void)initialLoginDidSucceed :(HRRHExLoginViewController *)login {
-    HRPeopleSetupViewController *setup = [login.storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];
-    setup.navigationItem.hidesBackButton = YES;
-    [login.navigationController pushViewController:setup animated:YES];
+- (void)initialLoginDidSucceed :(NSString *)host {
+    [[HRAPIClient clientWithHost:host] patientFeed:nil];
+    [HRMPatient performSync];
+    
+    // Present the People Setup view if it's not already being shown
+    UIViewController *controller = [(id)self.window.rootViewController topViewController];
+    if ([controller isKindOfClass:[HRSplashScreenViewController class]] ||
+        [controller isKindOfClass:[HRHIPPAMessageViewController class]]) {
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
+        id controller = [storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];
+        [[controller navigationItem] setHidesBackButton:YES];
+        [(id)self.window.rootViewController pushViewController:controller animated:YES];
+    }
 }
 
 #pragma mark - security questions delegate

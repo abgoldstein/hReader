@@ -38,6 +38,8 @@ static NSMutableDictionary *knownHostData = nil;
 
 @implementation HRAPIClient
 
+@synthesize authorizationCode;
+
 #pragma mark - class methods
 
 + (NSLock *)authorizationLock {
@@ -114,34 +116,51 @@ static NSMutableDictionary *knownHostData = nil;
         if (interval > 50 * 5 || _patientFeedLastFetchDate == nil || ignore) {
             
             // get the request
-            NSMutableURLRequest *request = [self GETRequestWithPath:@"/"];
+            NSString *path = [self hostDataByKey:@"dataPath"];
+            NSMutableURLRequest *request = [self GETRequestWithPath:path];
             
             // run request
             NSError *error = nil;
             NSHTTPURLResponse *response = nil;
             NSData *data = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&error];
             
-            // get ids
-            DDXMLDocument *document = [[DDXMLDocument alloc] initWithData:data options:0 error:nil];
-            [[document rootElement] addNamespace:[DDXMLNode namespaceWithName:@"atom" stringValue:@"http://www.w3.org/2005/Atom"]];
-            NSArray *IDs = [[document nodesForXPath:@"/atom:feed/atom:entry/atom:id" error:nil] valueForKey:@"stringValue"];
-            NSArray *names = [[document nodesForXPath:@"/atom:feed/atom:entry/atom:title" error:nil] valueForKey:@"stringValue"];
-            
-            // build array
-            if ([response statusCode] == 200 && IDs && [IDs count] == [names count]) {
-                NSMutableArray *patients = [[NSMutableArray alloc] initWithCapacity:[IDs count]];
-                [IDs enumerateObjectsUsingBlock:^(NSString *patientID, NSUInteger idx, BOOL *stop) {
-                    NSDictionary *dict = @{
-                        @"id" : patientID,
-                        @"name" : [names objectAtIndex:idx]
-                    };
-                    [patients addObject:dict];
-                }];
-                _patientFeed = feed = [patients copy];
-                _patientFeedLastFetchDate = [NSDate date];
+            // TODO - This is hacky to allow for the HIMSS demo
+            if ([[self hostDataByKey:@"dataFormat"] isEqualToString:@"json"]) {
+                // HIMSS
+                NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingAllowFragments error:&error];
+                if (payload) {
+                    NSMutableArray *patients = [[NSMutableArray alloc] initWithCapacity:1];
+                    NSString *name = [NSString stringWithFormat:@"%@ %@", [payload objectForKey:@"first"], [payload objectForKey:@"last"]];
+                    [patients addObject:@{@"id" : @"1", @"name" : name}];
+                    
+                    _patientFeed = feed = [patients copy];
+                    _patientFeedLastFetchDate = [NSDate date];
+                } else {
+                    HRDebugLog("Error reading patient feed: %@", error);
+                    feed = nil;
+                }
+            } else { // Older implementation
+                // get ids
+                DDXMLDocument *document = [[DDXMLDocument alloc] initWithData:data options:0 error:nil];
+                [[document rootElement] addNamespace:[DDXMLNode namespaceWithName:@"atom" stringValue:@"http://www.w3.org/2005/Atom"]];
+                NSArray *IDs = [[document nodesForXPath:@"/atom:feed/atom:entry/atom:id" error:nil] valueForKey:@"stringValue"];
+                NSArray *names = [[document nodesForXPath:@"/atom:feed/atom:entry/atom:title" error:nil] valueForKey:@"stringValue"];
+                
+                // build array
+                if ([response statusCode] == 200 && IDs && [IDs count] == [names count]) {
+                    NSMutableArray *patients = [[NSMutableArray alloc] initWithCapacity:[IDs count]];
+                    [IDs enumerateObjectsUsingBlock:^(NSString *patientID, NSUInteger idx, BOOL *stop) {
+                        NSDictionary *dict = @{
+                                               @"id" : patientID,
+                                               @"name" : [names objectAtIndex:idx]
+                                               };
+                        [patients addObject:dict];
+                    }];
+                    _patientFeed = feed = [patients copy];
+                    _patientFeedLastFetchDate = [NSDate date];
+                }
+                else { feed = nil; }
             }
-            else { feed = nil; }
-            
         }
         
         // call completion handler
@@ -167,7 +186,14 @@ static NSMutableDictionary *knownHostData = nil;
         });
         
         // create request
-        NSString *path = [NSString stringWithFormat:@"/records/%@/c32/%@.json", identifier, identifier];
+        // TODO This is a hack for HIMSS. Remove it.
+        NSString *path;
+        if ([[self hostDataByKey:@"dataFormat"] isEqualToString:@"json"]) {
+            path = @"patients.json";
+        } else {
+            path = [NSString stringWithFormat:@"/records/%@/c32/%@.json", identifier, identifier];
+        }
+        
         NSMutableURLRequest *request = [self GETRequestWithPath:path];
         [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
         
@@ -247,6 +273,13 @@ static NSMutableDictionary *knownHostData = nil;
 - (void)refreshAccessToken {
     HRDebugLog(@"Building request");
     
+    // TODO Remove this once OIDC is actually returning refresh tokens
+    NSString *access = HRCryptoManagerKeychainItemString(HROAuthKeychainService, _host);
+    if (access) {
+        _accessToken = access;
+        return;
+    }
+    
     // Make sure we have a refresh token
     NSString *refresh = HRCryptoManagerKeychainItemString(HROAuthKeychainService, _host);
     if (refresh == nil) {
@@ -302,7 +335,8 @@ static NSMutableDictionary *knownHostData = nil;
     if ([payload objectForKey:@"expires_in"] && [payload objectForKey:@"access_token"]) {
         // We were granted a token. Store the data appropriately
         if ([payload objectForKey:@"access_token"]) {
-            HRCryptoManagerSetKeychainItemString(HROAuthKeychainService, _host, [payload objectForKey:@"access_token"]);
+            BOOL tokenSaved = HRCryptoManagerSetKeychainItemString(HROAuthKeychainService, _host, [payload objectForKey:@"access_token"]);
+            if (!tokenSaved) { HRDebugLog(@"Unable to securely store access token."); }
         }
         NSTimeInterval interval = [[payload objectForKey:@"expires_in"] doubleValue];
         _accessTokenExpirationDate = [NSDate dateWithTimeIntervalSinceNow:interval];
@@ -325,7 +359,7 @@ static NSMutableDictionary *knownHostData = nil;
     // Build request parameters
     NSDictionary *parameters = [NSDictionary dictionaryWithObject:_accessToken forKey:@"access_token"];
     NSString *query = [HRAPIClient queryStringWithParameters:parameters];
-    NSString *URLString = [NSString stringWithFormat:@"https://%@%@?%@", _host, path, query];
+    NSString *URLString = [NSString stringWithFormat:@"%@%@?%@", [self hostDataByKey:@"dataServer"], path, query];
     NSURL *URL = [NSURL URLWithString:URLString];
     
     // Build request

@@ -10,6 +10,8 @@
 
 @interface HRAPIClient : NSObject
 
+@property NSString *authorizationCode;
+
 + (NSString *)queryStringWithParameters:(NSDictionary *)parameters;
 
 /*
