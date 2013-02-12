@@ -19,12 +19,19 @@
     HRMPatient *patient = [self.userInfo objectForKey:@"__private_patient__"];
     HRMEntry *encounter = [patient.encounters lastObject];
     if (encounter) {
-        self.dateLabel.text = [encounter.date hr_mediumStyleDate];
+        self.dateLabel.text = [encounter.startDate hr_mediumStyleDate];
         self.descriptionLabel.text = [encounter.desc sentenceCapitalizedString];
         NSDictionary *codes = encounter.codes;
         NSDictionary *codeType = [[codes allKeys] lastObject];
         NSString *codeValues = [[codes objectForKey:codeType] componentsJoinedByString:@", "];
-        self.typeLabel.text = [NSString stringWithFormat:@"%@ %@", codeType, codeValues];
+        
+        if (codeType || codeValues) {
+            self.typeLabel.text = [NSString stringWithFormat:@"%@ %@", codeType, codeValues];
+        } else {
+            self.typeLabel.text = @"";
+        }
+        
+        self.dischargeLabel.text = encounter.dischargeDisposition;
     }
     else {
         self.dateLabel.text = @"None";

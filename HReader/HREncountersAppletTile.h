@@ -13,5 +13,6 @@
 @property (retain, nonatomic) IBOutlet UILabel *dateLabel;
 @property (retain, nonatomic) IBOutlet UILabel *typeLabel;
 @property (retain, nonatomic) IBOutlet UILabel *descriptionLabel;
+@property (strong, nonatomic) IBOutlet UILabel *dischargeLabel;
 
 @end
