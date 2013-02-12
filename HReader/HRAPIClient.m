@@ -118,6 +118,7 @@ static NSMutableDictionary *knownHostData = nil;
             // get the request
             NSString *path = [self hostDataByKey:@"dataPath"];
             NSMutableURLRequest *request = [self GETRequestWithPath:path];
+            [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
             
             // run request
             NSError *error = nil;
@@ -189,7 +190,7 @@ static NSMutableDictionary *knownHostData = nil;
         // TODO This is a hack for HIMSS. Remove it.
         NSString *path;
         if ([[self hostDataByKey:@"dataFormat"] isEqualToString:@"json"]) {
-            path = @"patients.json";
+            path = [self hostDataByKey:@"dataPath"];
         } else {
             path = [NSString stringWithFormat:@"/records/%@/c32/%@.json", identifier, identifier];
         }
