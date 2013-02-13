@@ -66,7 +66,7 @@
     if (object && [object isKindOfClass:[NSDictionary class]]) {
         entry.codes = object;
     }
-    object = [dictionary objectForKey:@"value"];
+    object = [dictionary objectForKey:@"values"];
     if (object && [object isKindOfClass:[NSDictionary class]]) {
         entry.value = object;
     }
