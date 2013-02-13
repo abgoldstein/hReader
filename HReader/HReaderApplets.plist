@@ -4,6 +4,14 @@
 <array>
 	<dict>
 		<key>identifier</key>
+		<string>org.mitre.hreader.results</string>
+		<key>class_name</key>
+		<string>HRResultsAppletTile</string>
+		<key>display_name</key>
+		<string>Test Results</string>
+	</dict>
+	<dict>
+		<key>identifier</key>
 		<string>org.mitre.hreader.encounters</string>
 		<key>class_name</key>
 		<string>HREncountersAppletTile</string>
