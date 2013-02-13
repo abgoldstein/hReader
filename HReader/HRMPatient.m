@@ -251,7 +251,7 @@ NSString * const HRMPatientSyncStatusDidChangeNotification = @"HRMPatientSyncSta
     // birthdate
     object = [dictionary objectForKey:@"birthdate"];
     if (object && [object isKindOfClass:[NSNumber class]]) {
-        NSTimeInterval interval = [object doubleValue];
+        NSTimeInterval interval = [object doubleValue] / 1000;
         self.dateOfBirth = [NSDate dateWithTimeIntervalSince1970:interval];
     }
     else { self.dateOfBirth = nil; }

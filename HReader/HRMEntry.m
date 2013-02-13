@@ -49,7 +49,7 @@
     }
     object = [dictionary objectForKey:@"time"];
     if (object && [object isKindOfClass:[NSNumber class]]) {
-        NSTimeInterval stamp = [object doubleValue];
+        NSTimeInterval stamp = [object doubleValue] / 1000;
         entry.date = [NSDate dateWithTimeIntervalSince1970:stamp];
     }
     object = [dictionary objectForKey:@"start_time"];
@@ -59,7 +59,7 @@
     }
     object = [dictionary objectForKey:@"end_time"];
     if (object && [object isKindOfClass:[NSNumber class]]) {
-        NSTimeInterval stamp = [object doubleValue];
+        NSTimeInterval stamp = [object doubleValue] / 1000;
         entry.endDate = [NSDate dateWithTimeIntervalSince1970:stamp];
     }
     object = [dictionary objectForKey:@"codes"];
