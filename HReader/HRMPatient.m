@@ -121,8 +121,13 @@ NSString * const HRMPatientSyncStatusDidChangeNotification = @"HRMPatientSyncSta
 }
 
 - (NSString *)initials {
-    NSString *first = [[self.firstName substringToIndex:1] uppercaseString];
-    NSString *last = [[self.lastName substringToIndex:1] uppercaseString];
+    NSString *first;
+    NSString *last;
+    
+    // Sometimes even first/last name data can missing. Don't go out of bounds.
+    if ([self.firstName length] > 0) { first = [[self.firstName substringToIndex:1] uppercaseString]; }
+    if ([self.lastName length] > 0) { last = [[self.lastName substringToIndex:1] uppercaseString]; }
+        
     return [NSString stringWithFormat:@"%@%@", first, last];
 }
 
@@ -285,7 +290,7 @@ NSString * const HRMPatientSyncStatusDidChangeNotification = @"HRMPatientSyncSta
     collectionBlock(HRMEntryTypeAllergy, @"allergies");
     collectionBlock(HRMEntryTypeMedication, @"medications");
     collectionBlock(HRMEntryTypeProcedure, @"procedures");
-    collectionBlock(HRMEntryTypeResult, @"results");
+    collectionBlock(HRMEntryTypeResult, @"lab_results");
     collectionBlock(HRMEntryTypeVitalSign, @"vital_signs");
     collectionBlock(HRMEntryTypeImmunization, @"immunizations");
     
