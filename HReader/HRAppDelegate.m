@@ -485,7 +485,8 @@ static NSString *HRDefaultHost = @"local";
     // Present the People Setup view if it's not already being shown
     UIViewController *controller = [(id)self.window.rootViewController topViewController];
     if ([controller isKindOfClass:[HRSplashScreenViewController class]] ||
-        [controller isKindOfClass:[HRHIPPAMessageViewController class]]) {
+        [controller isKindOfClass:[HRHIPPAMessageViewController class]] ||
+        [controller isKindOfClass:[HRSecurityQuestionsViewController class]]) {
         UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"InitialSetup_iPad" bundle:nil];
         id controller = [storyboard instantiateViewControllerWithIdentifier:@"PeopleSetupViewController"];
         [[controller navigationItem] setHidesBackButton:YES];
