@@ -83,11 +83,12 @@
     if (object && [object isKindOfClass:[NSDictionary class]]) {
         entry.severity = object;
     }
-    object = [dictionary objectForKey:@"dischargeDisposition"];
+    // TODO: This is a hack specifically for a typo coming out of HIMSS demo data
+    object = [dictionary objectForKey:@"discharg_disposition"];
     if (object && [object isKindOfClass:[NSString class]]) {
         entry.dischargeDisposition = object;
     }
-    object = [dictionary objectForKey:@"referenceRange"];
+    object = [dictionary objectForKey:@"reference_range"];
     if (object && [object isKindOfClass:[NSString class]]) {
         entry.referenceRange = object;
     }

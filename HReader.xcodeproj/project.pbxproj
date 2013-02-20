@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		24584D8C169F41C500F69B1A /* HRPopHealthAppletTile.m in Sources */ = {isa = PBXBuildFile; fileRef = 24584D8B169F41C500F69B1A /* HRPopHealthAppletTile.m */; };
+		248363AE16D53EE000B23369 /* HREncountersAppletViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 248363AD16D53EE000B23369 /* HREncountersAppletViewController.m */; };
+		248363B016D53F1B00B23369 /* HREncountersApplet.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 248363AF16D53F1B00B23369 /* HREncountersApplet.storyboard */; };
 		24E6E22C16BDA83A008A7D97 /* known-hosts.plist in Resources */ = {isa = PBXBuildFile; fileRef = 24E6E22B16BDA83A008A7D97 /* known-hosts.plist */; };
 		24F8C1BA16CC14A20001F4DD /* HRResultsAppletTile.m in Sources */ = {isa = PBXBuildFile; fileRef = 24F8C1B916CC14A20001F4DD /* HRResultsAppletTile.m */; };
 		24F8C1BC16CC14F50001F4DD /* HRResultsAppletTile.xib in Resources */ = {isa = PBXBuildFile; fileRef = 24F8C1BB16CC14F50001F4DD /* HRResultsAppletTile.xib */; };
@@ -363,6 +365,9 @@
 /* Begin PBXFileReference section */
 		24584D8A169F41C500F69B1A /* HRPopHealthAppletTile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HRPopHealthAppletTile.h; sourceTree = "<group>"; };
 		24584D8B169F41C500F69B1A /* HRPopHealthAppletTile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HRPopHealthAppletTile.m; sourceTree = "<group>"; };
+		248363AC16D53EE000B23369 /* HREncountersAppletViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HREncountersAppletViewController.h; sourceTree = "<group>"; };
+		248363AD16D53EE000B23369 /* HREncountersAppletViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HREncountersAppletViewController.m; sourceTree = "<group>"; };
+		248363AF16D53F1B00B23369 /* HREncountersApplet.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = HREncountersApplet.storyboard; sourceTree = "<group>"; };
 		24E6E22B16BDA83A008A7D97 /* known-hosts.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "known-hosts.plist"; sourceTree = "<group>"; };
 		24F8C1B816CC14A20001F4DD /* HRResultsAppletTile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HRResultsAppletTile.h; sourceTree = "<group>"; };
 		24F8C1B916CC14A20001F4DD /* HRResultsAppletTile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HRResultsAppletTile.m; sourceTree = "<group>"; };
@@ -811,6 +816,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		248363AA16D53CD500B23369 /* HREncountersApplet */ = {
+			isa = PBXGroup;
+			children = (
+				9492CA5515360526009DE7F2 /* HREncountersAppletTile.h */,
+				9492CA5615360526009DE7F2 /* HREncountersAppletTile.m */,
+				9492CA581536053D009DE7F2 /* HREncountersAppletTile.xib */,
+				248363AC16D53EE000B23369 /* HREncountersAppletViewController.h */,
+				248363AD16D53EE000B23369 /* HREncountersAppletViewController.m */,
+				248363AF16D53F1B00B23369 /* HREncountersApplet.storyboard */,
+			);
+			name = HREncountersApplet;
+			sourceTree = "<group>";
+		};
 		3B001D3F15751B0D00762FB0 /* App Delegate */ = {
 			isa = PBXGroup;
 			children = (
@@ -1488,16 +1506,14 @@
 			isa = PBXGroup;
 			children = (
 				94AACFAB1535CFEE005E3851 /* Images */,
-				66A593E716D45A40004CA9AC /* HRResultsApplet */,
+				248363AA16D53CD500B23369 /* HREncountersApplet */,
 				49539DFA165A98D8004CB11B /* HRMedicationsApp */,
+				66A593E716D45A40004CA9AC /* HRResultsApplet */,
 				941F253D14E2EC5D0077D6D1 /* HRVitalAppletTile.h */,
 				941F253E14E2EC5D0077D6D1 /* HRVitalAppletTile.m */,
 				941F254014E2EC7E0077D6D1 /* HRVitalAppletTile.xib */,
 				94A6B8C31535F6940012E2B6 /* HRImageAppletTile.h */,
 				94A6B8C41535F6940012E2B6 /* HRImageAppletTile.m */,
-				9492CA5515360526009DE7F2 /* HREncountersAppletTile.h */,
-				9492CA5615360526009DE7F2 /* HREncountersAppletTile.m */,
-				9492CA581536053D009DE7F2 /* HREncountersAppletTile.xib */,
 				9492CA5C15360D4B009DE7F2 /* HRImmunizationsAppletTile.h */,
 				9492CA5D15360D4B009DE7F2 /* HRImmunizationsAppletTile.m */,
 				9492CA5A15360D10009DE7F2 /* HRImmunizationsAppletTile.xib */,
@@ -1954,6 +1970,7 @@
 				24E6E22C16BDA83A008A7D97 /* known-hosts.plist in Resources */,
 				24F8C1BC16CC14F50001F4DD /* HRResultsAppletTile.xib in Resources */,
 				66A593EE16D45AAF004CA9AC /* HRResultsApplet.storyboard in Resources */,
+				248363B016D53F1B00B23369 /* HREncountersApplet.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2079,6 +2096,7 @@
 				24584D8C169F41C500F69B1A /* HRPopHealthAppletTile.m in Sources */,
 				24F8C1BA16CC14A20001F4DD /* HRResultsAppletTile.m in Sources */,
 				66A593EC16D45A94004CA9AC /* HRResultsApplet.m in Sources */,
+				248363AE16D53EE000B23369 /* HREncountersAppletViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
