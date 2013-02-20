@@ -40,4 +40,11 @@
     }
 }
 
+-(void)didReceiveTap:(UIViewController *)sender inRect:(CGRect)rect {
+    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"HREncountersApplet" bundle:nil];
+    HREncountersAppletTile *controller = [storyboard instantiateInitialViewController];
+    
+    [sender.navigationController pushViewController:controller animated:YES];
+}
+
 @end

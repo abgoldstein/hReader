@@ -10,4 +10,6 @@
 
 @interface HREncountersAppletViewController : HRContentViewController
 
+@property (strong, nonatomic) IBOutlet UIScrollView *encountersView;
+
 @end
