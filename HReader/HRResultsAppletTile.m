@@ -24,11 +24,18 @@
     for (NSUInteger i = 0; i < results.count && i < 3; i++) {
         HRMEntry *result = results[i];
         
+        // Format data to display in our columns
         NSString *dateText = [result.date hr_mediumStyleDate];
         NSString *description = result.desc;
+        
+        // Display units if we have them available
+        NSString *resultUnits = [result.value objectForKey:@"units"];
+        if (!resultUnits) {
+            resultUnits = @"";
+        }
         NSString *resultText = [NSString stringWithFormat:@"%@ %@",
                                 [result.value objectForKey:@"scalar"],
-                                [result.value objectForKey:@"units"]];
+                                resultUnits];
         
         // Truncate the test name if it's too long to fit
         if (description.length > 12) {

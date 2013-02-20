@@ -29,10 +29,8 @@
     self = [super initWithCoder:coder];
     if (self) {
         self.title = @"Recent Results";
-        
-        //add data
-        //[self initializeData];
     }
+    
     return self;
 }
 
@@ -68,10 +66,8 @@
 }
 
 - (void)viewDidUnload {
-    [self setPatientImage:nil];
-    [self setPatientName:nil];
-    [self setResultsView:nil];
-    [self setResultsView:nil];
+    [self setPatientImageView:nil];
+    [self setPatientNameLabel:nil];
     [self setResultsView:nil];
     [super viewDidUnload];
 }
@@ -79,20 +75,24 @@
 - (void)initializeDataWithPatient:(HRMPatient *)currentPatient{
     NSLog(@"Initializing recent results data");
     
-    self.patientImage.image = [currentPatient patientImage];
-    self.patientName.text = [currentPatient compositeName];
-    
     // Generate labels for all of the test results
     NSArray *results = [currentPatient results];
     for (NSUInteger i = 0; i < results.count; i++) {
         HRMEntry *result = results[i];
         
+        // Format data to display in our columns
         NSString *dateText = [result.date hr_mediumStyleDate];
         NSString *description = result.desc;
         NSString *range = result.referenceRange;
+        
+        // Display units if we have them available
+        NSString *resultUnits = [result.value objectForKey:@"units"];
+        if (!resultUnits) {
+            resultUnits = @"";
+        }
         NSString *resultText = [NSString stringWithFormat:@"%@ %@",
                                 [result.value objectForKey:@"scalar"],
-                                [result.value objectForKey:@"units"]];
+                                resultUnits];
         
         int rowPosition = 51 + (i * 29);
         [self addResult:rowPosition testText:description dateText:dateText resultText:resultText rangeText:range];

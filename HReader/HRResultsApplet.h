@@ -13,7 +13,4 @@
 
 @property (weak, nonatomic) IBOutlet UIScrollView *resultsView;
 
-@property (weak, nonatomic) IBOutlet UILabel *patientName;
-@property (weak, nonatomic) IBOutlet UIImageView *patientImage;
-
 @end
