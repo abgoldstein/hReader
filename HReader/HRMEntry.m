@@ -28,6 +28,7 @@
 @dynamic patientComments;
 @dynamic userDeleted;
 @dynamic dischargeDisposition;
+@dynamic referenceRange;
 
 + (HRMEntry *)instanceWithDictionary:(NSDictionary *)dictionary
                                 type:(HRMEntryType)type
@@ -85,6 +86,10 @@
     object = [dictionary objectForKey:@"dischargeDisposition"];
     if (object && [object isKindOfClass:[NSString class]]) {
         entry.dischargeDisposition = object;
+    }
+    object = [dictionary objectForKey:@"referenceRange"];
+    if (object && [object isKindOfClass:[NSString class]]) {
+        entry.referenceRange = object;
     }
     
     // return
