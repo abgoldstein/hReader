@@ -48,24 +48,21 @@
     
     // allergies
     {
-        NSArray *allergies = [patient.syntheticInfo objectForKey:@"allergies"];
+        NSArray *allergies = patient.allergies;
         NSUInteger count = [allergies count];
         self.allergiesLabel.textColor = [UIColor blackColor];
-        if (count) {
-            NSMutableString *string = [[allergies objectAtIndex:0] mutableCopy];
+        if (count > 0) {
+            self.allergiesLabel.textColor = [UIColor hr_redColor];
+            
+            HRMEntry *allergy = [allergies objectAtIndex:0];
             if (count > 1) {
-                self.allergiesLabel.textColor = [UIColor hr_redColor];
-                [string appendFormat:@", %lu more", (unsigned long)(count - 1)];
+                self.allergiesLabel.text = [NSString stringWithFormat:@"%@, %lu more", allergy.desc, (unsigned long)(count - 1)];
+            } else {
+                self.allergiesLabel.text = allergy.desc;
             }
-            if ([string length] > 0) {
-                self.allergiesLabel.textColor = [UIColor hr_redColor];
-                self.allergiesLabel.text = string;
-            }
-            else {
-                self.allergiesLabel.text = @"None";
-            }
+        } else {
+            self.allergiesLabel.text = @"None";
         }
-        else { self.allergiesLabel.text = @"None"; }
     }
     
     // conditions
